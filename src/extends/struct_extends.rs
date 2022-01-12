@@ -5,6 +5,7 @@ use std::fs;
 use std::io::Read;
 use std::path;
 use std::path::PathBuf;
+use substring::Substring;
 use syn::ext::IdentExt;
 use syn::{parse_macro_input, token::Token, Attribute, DeriveInput, Ident, Item, ItemFn, Stmt};
 
@@ -135,7 +136,7 @@ pub fn impl_extends_struct(_attr: TokenStream, _input: TokenStream) -> TokenStre
                     let identtrri = &f.ident;
                     let ty = &f.ty;
                     let mut attr_name_str = String::from("");
-                    let mut ty_str = String::from("");
+                    let mut ty_str = String::new();
                     match identtrri {
                         Some(r) => {
                             attr_name_str = r.to_string();
@@ -144,11 +145,23 @@ pub fn impl_extends_struct(_attr: TokenStream, _input: TokenStream) -> TokenStre
                     }
                     match ty {
                         syn::Type::Path(p) => {
-                            ty_str = format!("{}", p.path.segments[0].ident);
+                            let attr_str = p.path.segments.to_token_stream().to_string();
+                            if (attr_str.contains("Option")) {
+                                ty_str = attr_str
+                                    .to_string()
+                                    .substring(
+                                        attr_str.find("<").unwrap() + 1,
+                                        attr_str.rfind(">").unwrap(),
+                                    )
+                                    .trim()
+                                    .to_string();
+                            } else {
+                                ty_str = attr_str.trim().to_string();
+                            }
                         }
                         _ => {}
                     }
-                    let attr_str = attr_name_str + &(":".to_string()) + &ty_str;
+                    let attr_str = attr_name_str + ":" + &ty_str;
                     attr_str_vec.push(attr_str);
                 });
             }
@@ -169,10 +182,10 @@ pub fn impl_extends_struct(_attr: TokenStream, _input: TokenStream) -> TokenStre
 
     let attr_impl = quote! {
         impl #struct_name{
-            fn  get_struct_name()->String{
+            pub fn  get_struct_name()->String{
                 String::from(#struct_name_str)
             }
-            fn  get_struct_attr_str()->Vec<String>{
+            pub fn  get_struct_attr_str()->Vec<String>{
                 vec!(#(String::from(#attr_str_vec)),*)
             }
 
@@ -184,7 +197,7 @@ pub fn impl_extends_struct(_attr: TokenStream, _input: TokenStream) -> TokenStre
        #clone_struct
        #attr_impl
     });
-    //eprintln!("{:#?}",apai.to_string());
+    eprintln!("steam:{:#?}", apai.to_string());
     apai.into()
 }
 
@@ -199,7 +212,6 @@ fn split_mod_str(extends: String) -> (std::string::String, std::vec::Vec<String>
     extends_split.for_each(|f| {
         split_vec.push(f);
     });
-
     if !extends.starts_with("crate") {
         let mut salsh_idx = extends_path.rfind("\\");
         if salsh_idx == None {
@@ -207,6 +219,16 @@ fn split_mod_str(extends: String) -> (std::string::String, std::vec::Vec<String>
         }
         let (f_str, _) = extends_path.split_at(salsh_idx.unwrap());
         extends_path = f_str.to_string() + "/";
+
+        //向上寻找一级文件夹
+        if (!path::Path::new(format!("{}{}", extends_path, split_vec[0]).as_str()).exists()) {
+            extends_path = extends_path
+                .split_at(extends_path.rfind("\\").unwrap())
+                .0
+                .to_string()
+                + "/";
+        }
+
         extends_path += split_vec[0];
     }
     extends_path += "/src";
@@ -246,7 +268,6 @@ fn split_mod_str(extends: String) -> (std::string::String, std::vec::Vec<String>
     let mut file = fs::File::open(file_path).ok().unwrap();
     let mut read_str = String::new();
     file.read_to_string(&mut read_str);
-
     // if (type_name == "struct") {
     //     // read_str.find()
     // }
@@ -301,7 +322,7 @@ fn split_mod_str(extends: String) -> (std::string::String, std::vec::Vec<String>
             .1;
         let str_rs = str_s1.split_at(str_s1.find(")").unwrap()).0;
         str_rs.split(",").for_each(|f| {
-            dervie_vec.push(f.to_string());
+            dervie_vec.push(f.trim().to_string());
         });
     }
 
@@ -324,7 +345,10 @@ fn split_mod_str(extends: String) -> (std::string::String, std::vec::Vec<String>
     //     }
     //     impl_content_idx+=1;
     // }
-    // println!("content_code_str:{:?},d-vec:{:?}",content_code_str,dervie_vec);
+    println!(
+        "content_code_str:{:?},d-vec:{:?}",
+        content_code_str, dervie_vec
+    );
 
     (content_code_str, dervie_vec)
 }
