@@ -206,8 +206,9 @@ fn split_mod_str(extends: String) -> (std::string::String, std::vec::Vec<String>
     let mut extends_path = String::new();
     let extends_split = extends.split("::");
     let config_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    println!("CARGO_MANIFEST_DIR:{:?}",config_path);
     extends_path += config_path.to_str().unwrap();
-
+    
     let mut split_vec = vec![];
     extends_split.for_each(|f| {
         split_vec.push(f);
