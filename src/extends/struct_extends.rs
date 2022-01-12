@@ -268,7 +268,7 @@ fn split_mod_str(extends: String) -> (std::string::String, std::vec::Vec<String>
             extends_path += f;
         }
     }
-    let (block_name, type_name) = mod_name.split_once("*").unwrap();
+    let (block_name, type_name) = mod_name.split_once("@").unwrap();
     let file_path = path::Path::new(&extends_path);
     let mut file = fs::File::open(file_path).ok().unwrap();
     let mut read_str = String::new();
