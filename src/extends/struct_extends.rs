@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, quote_spanned, ToTokens};
-use std::fs;
+use std::{fs, env};
 use std::io::Read;
 use std::path;
 use std::path::PathBuf;
@@ -10,6 +10,8 @@ use syn::ext::IdentExt;
 use syn::{parse_macro_input, token::Token, Attribute, DeriveInput, Ident, Item, ItemFn, Stmt};
 
 pub fn impl_extends_struct(_attr: TokenStream, _input: TokenStream) -> TokenStream {
+
+
     //解析入参
     let mut derive = String::new();
     let mut extends = String::new();
@@ -205,10 +207,12 @@ pub fn impl_extends_struct(_attr: TokenStream, _input: TokenStream) -> TokenStre
 fn split_mod_str(extends: String) -> (std::string::String, std::vec::Vec<String>) {
     let mut extends_path = String::new();
     let extends_split = extends.split("::");
-    let config_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    println!("CARGO_MANIFEST_DIR:{:?}",config_path);
+    //let out_dir = env::var("TARGET");
+    //let config_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let config_path = env::current_dir().unwrap();
+    println!("config_path:{:?}",config_path);
     extends_path += config_path.to_str().unwrap();
-    
+
     let mut split_vec = vec![];
     extends_split.for_each(|f| {
         split_vec.push(f);
