@@ -1,6 +1,5 @@
 use proc_macro::TokenStream;
-use proc_macro2::Span;
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{quote, ToTokens};
 use std::{fs, env};
 use std::io::Read;
 use std::path;
@@ -9,6 +8,7 @@ use substring::Substring;
 use syn::ext::IdentExt;
 use syn::{parse_macro_input, token::Token, Attribute, DeriveInput, Ident, Item, ItemFn, Stmt};
 
+#[allow(warnings)]
 pub fn impl_extends_struct(_attr: TokenStream, _input: TokenStream) -> TokenStream {
 
 
@@ -209,9 +209,15 @@ fn split_mod_str(extends: String) -> (std::string::String, std::vec::Vec<String>
     let extends_split = extends.split("::");
     //let out_dir = env::var("TARGET");
     //let config_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let config_path = env::current_dir().unwrap();
+    let mut config_path = String::new();
+    let config_path_rs = env::current_dir();
+    if let Ok(r)=config_path_rs{
+        if let Some(s) = r.to_str(){
+            config_path = s.to_string();
+        }
+    }
     println!("config_path:{:?}",config_path);
-    extends_path += config_path.to_str().unwrap();
+    extends_path += &config_path;
 
     let mut split_vec = vec![];
     extends_split.for_each(|f| {
@@ -270,9 +276,12 @@ fn split_mod_str(extends: String) -> (std::string::String, std::vec::Vec<String>
     }
     let (block_name, type_name) = mod_name.split_once("@").unwrap();
     let file_path = path::Path::new(&extends_path);
-    let mut file = fs::File::open(file_path).ok().unwrap();
+    let mut file_rs = fs::File::open(file_path);
     let mut read_str = String::new();
-    file.read_to_string(&mut read_str);
+    if let Ok(mut r)=file_rs{
+        r.read_to_string(&mut read_str);
+    }
+   
     // if (type_name == "struct") {
     //     // read_str.find()
     // }
@@ -319,7 +328,9 @@ fn split_mod_str(extends: String) -> (std::string::String, std::vec::Vec<String>
     });
     //print!("---dive{:?}",codesln);
     let mut dervie_vec = vec![];
-
+    if(first_row<1){
+        panic!("error")
+    }
     let derive_dome_str = codesln[first_row - 1];
     if (derive_dome_str.contains("#[derive(")) {
         let str_s1 = derive_dome_str
@@ -334,13 +345,16 @@ fn split_mod_str(extends: String) -> (std::string::String, std::vec::Vec<String>
     let mut content_code_str = String::new();
     let mut content_idx = 0_usize;
     let blook_code_len = ln_idx.len();
-    for number in ln_idx {
-        if (content_idx >= 1 && content_idx < (blook_code_len - 1)) {
-            //println!("-------{:?}", codesln[number]);
-            content_code_str += codesln[number];
+    if(blook_code_len>0){
+        for number in ln_idx {
+            if (content_idx >= 1 && content_idx < (blook_code_len - 1)) {
+                //println!("-------{:?}", codesln[number]);
+                content_code_str += codesln[number];
+            }
+            content_idx += 1;
         }
-        content_idx += 1;
     }
+    
     // let mut impl_content_idx = 0_usize;
     // let mut impl_content_code_str = String::new();
     // let impl_blook_code_len = impl_ln_idx.len();
