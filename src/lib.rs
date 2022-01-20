@@ -2,15 +2,23 @@ mod extends;
 extern crate proc_macro;
 extern crate proc_macro2;
 use proc_macro::TokenStream;
+extern crate pest;
+#[macro_use]
+extern crate pest_derive;
 
 
-
-
+#[allow(warnings)]
 #[proc_macro_attribute]
 pub fn extends_struct(_attr: TokenStream, _input: TokenStream) -> TokenStream {
-    extends::struct_extends::impl_extends_struct(_attr, _input)
+    extends::all_extends::impl_extends(_attr, _input)
 }
 
+
+
+#[test]
+fn name() {
+    extends::all_extends::path_split("rsdata::dbs::arbatis::base_struct::BaseDO@struct".to_string());
+}
 
 
     //rsdata::dbs::arbatis::base_struct::BaseDO*struct

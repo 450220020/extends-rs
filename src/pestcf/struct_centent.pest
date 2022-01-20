@@ -1,0 +1,28 @@
+WHITESPACE = _{" " | NEWLINE|zhushi}
+zhushi = {"//"~ANY*}
+char = @{ ASCII_ALPHANUMERIC }
+derchar = @{ ASCII_ALPHANUMERIC |","|"_"}
+usep = @{ASCII_ALPHANUMERIC|"::"|"{"|"}"|"," }
+usep_content = {(("use"|"extern"~"crate")~usep*~";")?}
+derivep = {("#[derive("~derchar+~")]")?}
+structchar = @{ ASCII_ALPHANUMERIC|":"|"<"|">"|"," |"_"}
+struct_content = {structchar+|char+}
+struct_name = {char+}
+struct_impl_name = {char+}
+implchar = @{ ASCII_ALPHANUMERIC|"("|")"|";"|"!"|","|"\""|"#"|"_"|"-"|">"|"<" }
+fnafor = {(fnbfor|fncfor|fndfor)}
+fnbfor = {"{"~implchar*~fnafor~implchar*~"}"}
+fncfor = {implchar*~"{"~implchar*~"}"~implchar*}
+fndfor = {implchar*~"{"~fnafor*~"}"~implchar*}
+structimpl_content = {
+fnafor*
+}
+
+strcutstr = { derivep~ "pub"? ~ "struct" ~  struct_name ~"{"  ~ struct_content ~ "}" }
+structimplstr = {"pub"? ~ "impl" ~  struct_impl_name ~"{"  ~ structimpl_content ~ "}"}
+file = {
+    SOI~
+    usep_content~
+    (strcutstr|structimplstr)*
+    ~EOI
+}
