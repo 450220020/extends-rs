@@ -19,19 +19,20 @@ use std::collections::HashMap;
 #[grammar = "./pestcf/struct_centent.pest"]
 pub struct ExtendsParser;
 
-pub fn printStr(a:String){
-    if(true){
-        println!("{:?}",a);
-    }
-}
-
+    ///
+    /// #[extends_struct(derive="Debug,Clone"&&extends="rsdata::dbs::arbatis::base_struct::BaseDO@struct")]
+    /// 拆解属性路径
+    /// ```
+    /// fn path_split();
+    /// ```
 #[allow(warnings)]
 pub fn path_split(extends_attr:String)->(String,String,String){
-    printStr(format!("extends_attr:{:?}",extends_attr));
     let mut extends_path = String::new();
     let extends_split = extends_attr.split("::");
     let mut config_path = String::new();
     let config_path_rs = env::current_dir();
+
+  
     match  config_path_rs{
         Ok(r)=>{
             if let Some(s) = r.to_str(){
@@ -42,14 +43,14 @@ pub fn path_split(extends_attr:String)->(String,String,String){
             panic!("error:{:?}",e);
         }
     }
-    printStr(format!("config_path:{:?}",config_path));
+    
     extends_path += &config_path;
 
     let mut split_vec = vec![];
     extends_split.for_each(|f| {
         split_vec.push(f);
     });
-    printStr(format!("split_vec:{:?}",split_vec));
+    
     if !extends_attr.starts_with("crate") {
         let mut salsh_idx = extends_path.rfind("\\");
         if salsh_idx == None {
@@ -57,7 +58,6 @@ pub fn path_split(extends_attr:String)->(String,String,String){
         }
         let (f_str, _) = extends_path.split_at(salsh_idx.unwrap());
         extends_path = f_str.to_string() + "/";
-
         //向上寻找一级文件夹
         if (!path::Path::new(format!("{}{}", extends_path, split_vec[0]).as_str()).exists()) {
             extends_path = extends_path
@@ -66,12 +66,13 @@ pub fn path_split(extends_attr:String)->(String,String,String){
                 .to_string()
                 + "/";
         }
+       
         extends_path += split_vec[0];
     }
 
     extends_path += "/src";
 
-    
+   
     let mut mod_name = String::new();
     let split_size = split_vec.len();
     if split_size < 1 {
@@ -93,7 +94,6 @@ pub fn path_split(extends_attr:String)->(String,String,String){
             if idx < 2 {
                 continue;
             }
-            printStr(format!("spl:{:?}",f));
             if (idx >= split_size) {
                 extends_path += ".rs";
                 //最后一位为对象+对象类型名
@@ -104,12 +104,13 @@ pub fn path_split(extends_attr:String)->(String,String,String){
             extends_path += f;
         }
     }
-    printStr(format!("rs:{:?}",extends_path));
+    println!("extends_patha:{:?}",extends_path);
+    println!("extends_pathb:{:?}",extends_path);
     let (block_name, type_name) = mod_name.split_once("@").unwrap();
     //let file_path = path::Path::new(&extends_path);
-
     return (extends_path,block_name.to_string(),type_name.to_string());
 }
+
 
 
 fn setVecAttr(clone_struct:&syn::DeriveInput)->Vec<String>{
@@ -154,10 +155,16 @@ fn setVecAttr(clone_struct:&syn::DeriveInput)->Vec<String>{
         },
         _ => (),
     }
-    println!("~~~vsc:{:?}",attr_str_vec);
     attr_str_vec
 }
 
+
+
+    ///
+    /// 读取父类子类合并的属性
+    /// ```
+    /// fn read_struct_attr();
+    /// ```
 fn read_struct_attr(black_name:String,parent_struct_content_str:String,current_struct_content_str:String)-> Vec<String>{
     let struct_name = Ident::new(black_name.as_str(),Span::call_site());
     let current_struct:proc_macro2::TokenStream = proc_macro2::TokenStream::from_str(&current_struct_content_str.as_str()).unwrap();
@@ -172,6 +179,18 @@ fn read_struct_attr(black_name:String,parent_struct_content_str:String,current_s
     setVecAttr(&clone_struct)
 }
 
+
+    ///
+    /// 创建一个 内部值都为 None 的struct
+    /// # Arguments
+    ///
+    /// * `Joinz` - xxxxxxxx
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// struct.get_new_none();
+    /// ```
 fn get_new_none(black_name:String,parent_struct_content_str:String,current_struct_content_str:String)->proc_macro2::TokenStream{
     let current_struct:proc_macro2::TokenStream = proc_macro2::TokenStream::from_str(&current_struct_content_str.as_str()).unwrap();
     let parent_struct:proc_macro2::TokenStream = proc_macro2::TokenStream::from_str(&parent_struct_content_str.as_str()).unwrap();
@@ -183,14 +202,12 @@ fn get_new_none(black_name:String,parent_struct_content_str:String,current_struc
         }
     };
     let struct_all_code_str = clone_struct_new_model_quote.to_string();
-    println!("struct_all_code_str:{:?}",struct_all_code_str);
     let right_st_str = &struct_all_code_str
         .split_at(struct_all_code_str.find("{").unwrap() + 1)
         .1;
     let center_code_str = right_st_str.split_at(right_st_str.find("}").unwrap()).0;
     //let center_code_str = center_code_str.replace('\n', "").replace('\r', "");
     let attr_code_str_split = center_code_str.trim().split(",");
-    println!("black_name:{:?}",black_name);
     let mut new_none_str = String::new();
     attr_code_str_split.for_each(|f| {
         if (f.contains(":")) {
@@ -198,8 +215,6 @@ fn get_new_none(black_name:String,parent_struct_content_str:String,current_struc
             new_none_str += &(attr_name.replace("pub", "").to_string() + ":None,");
         }
     });
-    //new_none_str.parse::<proc_macro2::TokenStream>().unwrap();
-    println!("new_none_str:{:?}",new_none_str);
     let new_none_ts = proc_macro2::TokenStream::from_str(new_none_str.as_str()).unwrap();
     let clone_struct_new_none_fn_quote = quote! {
          pub fn new_none()->#struct_name{
@@ -240,17 +255,16 @@ fn merge_derive(parent_derive_str:String,derive_current:String)->String{
         derive_rs+=",";
     }
     derive_rs = derive_rs.split_at(derive_rs.rfind(",").unwrap()).0.to_string();
-    println!("derive_rs:{:?}",derive_rs);
     "#[derive(".to_string()+&derive_rs+")]"
 }
 
 fn  extends_str(extends_path:String,black_name:String,attr_str: String, _input: String)->Option<TokenStream>{
 
-    
-    let unparsed_file = fs::read_to_string(extends_path).expect("cannot read file");
-    
+    let mut unparsed_file = String::new();
+    if let Ok(r)=fs::read_to_string(&extends_path){
+        unparsed_file = r.clone();
+    }
     let mut parent_derive_str = String::new();
-    //let mut parent_name_str = String::new();
     let mut parent_struct_content_str = String::new();
     let mut parent_impl_content_str = String::new();
     let mut current_struct_content_str = String::new();
@@ -280,12 +294,8 @@ fn  extends_str(extends_path:String,black_name:String,attr_str: String, _input: 
             _ => (),
         }
     }
-    printStr("black_name:".to_string()+&black_name);
-    printStr("parent_derive_str:".to_string()+&parent_derive_str);
-    printStr("parent_impl_content_str:".to_string()+&parent_impl_content_str);
-    printStr("parent_struct_content_str:".to_string()+&parent_struct_content_str);
+
     
-    println!("_input:{:?}",_input);
     let file = ExtendsParser::parse(Rule::file, &_input)
         .expect("unsuccessful parse") 
         .next().unwrap();
@@ -301,23 +311,17 @@ fn  extends_str(extends_path:String,black_name:String,attr_str: String, _input: 
             _ => (),
         }
     }
-    printStr("-------current_struct_name_str:".to_string()+&current_struct_name_str);
-    
-    printStr("-------current_struct_content_str:".to_string()+&current_struct_content_str);
-    
+   
     let mut derive_current = String::new();
     let attr_split = attr_str.split("&&");
-    println!("att:{:?}",attr_split);
     attr_split.for_each(|_atrra| {
         let (key, val) = _atrra.split_once("=").unwrap();
         if let "derive" = key {
             derive_current = val.to_string();
         }
     });
-    printStr("--------derive_current:".to_string()+&derive_current);
     
     let  derive_rs = merge_derive(parent_derive_str,derive_current);
-    printStr("--------derive_rs:".to_string()+&derive_rs);
     
     let attr_str_vec = read_struct_attr(current_struct_name_str.clone(), parent_struct_content_str.clone(), current_struct_content_str.clone());
      
@@ -350,7 +354,6 @@ fn  extends_str(extends_path:String,black_name:String,attr_str: String, _input: 
             #attr_impl
         }
     });
-   
     return Some(merge_token_strem.into());
 }
 
@@ -378,11 +381,10 @@ pub fn impl_extends(_attr: TokenStream, _input: TokenStream) -> TokenStream {
     
     //最终文件路径
     let (extends_path,black_name,type_name) =  path_split(extends_attr);
-    printStr("地址:".to_string()+&extends_path);
+   
     let extents_rs = extends_str(extends_path,black_name,attr_str,the_block_str);
 
     if let Some(ts) =extents_rs{
-        eprintln!("{:#?}",ts.to_string().replace("\n", "").replace('\\', ""));
         return ts;
     }
     
