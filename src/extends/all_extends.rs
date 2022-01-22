@@ -1,18 +1,12 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{quote, ToTokens};
-use std::fmt::format;
-use std::fs::OpenOptions;
 use std::str::FromStr;
 use std::{fs, env, vec};
-use std::io::Read;
 use std::path;
-use std::path::PathBuf;
 use substring::Substring;
-use syn::ext::IdentExt;
-use syn::{parse_macro_input, token::Token, Attribute, DeriveInput, Ident, Item, ItemFn, Stmt};
+use syn::{ Ident};
 use pest::Parser;
-use std::collections::HashMap;
 
 
 #[derive(Parser)]
