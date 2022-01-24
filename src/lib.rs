@@ -2,6 +2,7 @@ mod extends;
 extern crate proc_macro;
 extern crate proc_macro2;
 use proc_macro::TokenStream;
+#[macro_use]
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
